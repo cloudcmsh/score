@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>模擬考成績查詢系統</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -58,11 +59,22 @@
       text-align: center;
       font-size: 18px;
       margin-bottom: 20px;
-      padding: 10px;
+      padding: 15px;
       background-color: #e8f0fe;
       border-radius: 5px;
       display: none;
     }
+    #analysisBtn {
+      background-color: #34a853; 
+      margin-top: 15px;
+      width: auto;
+      padding: 8px 20px;
+      font-weight: bold;
+    }
+    #analysisBtn:hover {
+      background-color: #2b8c46;
+    }
+
     .exam-section {
       margin-bottom: 30px;
       border: 1px solid #ddd;
@@ -143,32 +155,66 @@
       text-align: center;
       margin-top: 10px;
     }
+
+    .modal {
+      display: none; 
+      position: fixed; 
+      z-index: 1000; 
+      left: 0;
+      top: 0;
+      width: 100%; 
+      height: 100%; 
+      overflow: auto; 
+      background-color: rgba(0,0,0,0.6); 
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto; 
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%; 
+      max-width: 800px;
+      position: relative;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover, .close:focus {
+      color: #333;
+      text-decoration: none;
+    }
+    .chart-container {
+      position: relative;
+      height: 250px;
+      width: 100%;
+      margin-bottom: 30px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    /* 校排圖表可以拉高一點，因為 Y 軸數值可能變化較大 */
+    .rank-chart-container {
+       height: 300px; 
+    }
+    .modal-title {
+      text-align: center;
+      color: #1a73e8;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
     @media screen and (max-width: 768px) {
-      .container {
-        padding: 15px;
-      }
-      h1 {
-        font-size: 22px;
-      }
-      .student-info {
-        font-size: 16px;
-      }
-      .exam-details {
-        flex-direction: column;
-        gap: 5px;
-        font-size: 14px;
-      }
-      th, td {
-        font-size: 14px;
-        padding: 8px 4px;
-      }
-      .table-responsive::-webkit-scrollbar {
-        height: 6px;
-      }
-      .table-responsive::-webkit-scrollbar-thumb {
-        background: #bbb; 
-        border-radius: 3px;
-      }
+      .container { padding: 15px; }
+      h1 { font-size: 22px; }
+      .student-info { font-size: 16px; }
+      .exam-details { flex-direction: column; gap: 5px; font-size: 14px; }
+      th, td { font-size: 14px; padding: 8px 4px; }
+      .table-responsive::-webkit-scrollbar { height: 6px; }
+      .table-responsive::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
+      .modal-content { margin: 10% auto; padding: 15px; }
     }
   </style>
 </head>
@@ -185,13 +231,36 @@
     <div id="error-msg"></div>
   </div>
 
-  <div class="student-info" id="studentInfo"></div>
+  <div class="student-info" id="studentInfo">
+    <div id="studentText"></div>
+    <button id="analysisBtn" style="display:none;" onclick="openAnalysisModal()">📊 開啟歷次成績趨勢分析</button>
+  </div>
 
   <div id="resultsContainer"></div>
 </div>
 
+<div id="analysisModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeAnalysisModal()">&times;</span>
+    <h2 class="modal-title">各科成績變動趨勢圖</h2>
+    
+    <div class="chart-container"><canvas id="chartChinese"></canvas></div>
+    <div class="chart-container"><canvas id="chartEnglish"></canvas></div>
+    <div class="chart-container"><canvas id="chartMathA"></canvas></div>
+    <div class="chart-container"><canvas id="chartMathB"></canvas></div>
+    <div class="chart-container"><canvas id="chartScience"></canvas></div>
+    <div class="chart-container"><canvas id="chartSocial"></canvas></div>
+    
+    <div class="chart-container rank-chart-container"><canvas id="chartSchoolRank"></canvas></div>
+
+  </div>
+</div>
+
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycbyb2vSwJRJMJelCbrxdgRH_CJpCRboBUb_mLDjHrTeVZi0cOe9tgFffSbqexlXrVNZchQ/exec"; 
+
+  let globalScoresData = [];
+  let chartInstances = {};
 
   function fetchScores() {
     const acc = document.getElementById('account').value;
@@ -200,6 +269,8 @@
     const loading = document.getElementById('loading');
     const resultsContainer = document.getElementById('resultsContainer');
     const studentInfo = document.getElementById('studentInfo');
+    const studentText = document.getElementById('studentText');
+    const analysisBtn = document.getElementById('analysisBtn');
 
     if (!acc || !pwd) {
       errorMsg.textContent = "請完整輸入帳號與密碼";
@@ -208,6 +279,7 @@
 
     errorMsg.textContent = "";
     studentInfo.style.display = "none";
+    analysisBtn.style.display = "none";
     resultsContainer.innerHTML = "";
     loading.style.display = "block";
 
@@ -221,21 +293,23 @@
         if (data.status === "error") {
           errorMsg.textContent = data.message;
         } else if (data.status === "success") {
+          
+          globalScoresData = data.scores;
+
           const displayClass = data.className || "";
-          studentInfo.innerHTML = `<strong>班級：</strong>${displayClass} &nbsp;&nbsp;&nbsp; <strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
+          studentText.innerHTML = `<strong>班級：</strong>${displayClass} &nbsp;&nbsp;&nbsp; <strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
           studentInfo.style.display = "block";
+          analysisBtn.style.display = "inline-block"; 
           
           data.scores.forEach(exam => {
             const section = document.createElement('div');
             section.className = 'exam-section';
             
-            // 1. 考試標題
             const title = document.createElement('div');
             title.className = 'exam-title';
             title.textContent = exam.examName;
             section.appendChild(title);
 
-            // 2. 考試詳細資訊 (日期與人數)
             if (exam.examDate !== "" || exam.examParticipants !== "") {
               const details = document.createElement('div');
               details.className = 'exam-details';
@@ -246,7 +320,6 @@
               section.appendChild(details);
             }
             
-            // 3. 表格外框與成績
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'table-responsive';
 
@@ -289,7 +362,6 @@
               section.appendChild(tableWrapper);
             }
 
-            // 4. 五標
             if (exam.standards && exam.standards.length > 0) {
               const standardsWrapper = document.createElement('div');
               standardsWrapper.className = 'standards-wrapper';
@@ -340,6 +412,143 @@
         errorMsg.textContent = "連線發生錯誤，請稍後再試或聯繫老師。";
         console.error(err);
       });
+  }
+
+  function openAnalysisModal() {
+    document.getElementById('analysisModal').style.display = "block";
+    
+    renderScoreChart('chartChinese', 'chinese', '國文', '#e84393'); 
+    renderScoreChart('chartEnglish', 'english', '英文', '#0984e3'); 
+    renderScoreChart('chartMathA', 'mathA', '數A', '#d63031');      
+    renderScoreChart('chartMathB', 'mathB', '數B', '#e17055');      
+    renderScoreChart('chartScience', 'science', '自然', '#00b894'); 
+    renderScoreChart('chartSocial', 'social', '社會', '#fdcb6e');   
+    
+    // 繪製校排變動圖表 (使用獨立的函式，因為 Y 軸方向與設定不同)
+    renderRankChart('chartSchoolRank', 'schoolRank', '四科校排', '#6c5ce7'); 
+  }
+
+  function closeAnalysisModal() {
+    document.getElementById('analysisModal').style.display = "none";
+  }
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('analysisModal');
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  }
+
+  // 繪製一般級分折線圖 (Y軸 0-15)
+  function renderScoreChart(canvasId, subjectKey, subjectName, colorHex) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    if (chartInstances[canvasId]) {
+      chartInstances[canvasId].destroy();
+    }
+
+    const labels = [];
+    const dataPoints = [];
+
+    globalScoresData.forEach(exam => {
+      labels.push(exam.examName);
+      let val = null; 
+      if (exam.score && exam.score[subjectKey] !== "") {
+        val = Number(exam.score[subjectKey]);
+      }
+      dataPoints.push(val);
+    });
+
+    chartInstances[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: `${subjectName} 級分`,
+          data: dataPoints,
+          borderColor: colorHex,
+          backgroundColor: colorHex,
+          pointBackgroundColor: colorHex,
+          pointRadius: 5,
+          borderWidth: 2,
+          tension: 0.1, 
+          spanGaps: true 
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top' }
+        },
+        scales: {
+          y: {
+            min: 0,
+            max: 15, 
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+  }
+
+  // 繪製排名折線圖 (Y軸反轉，數字越小在越上面)
+  function renderRankChart(canvasId, rankKey, titleName, colorHex) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    if (chartInstances[canvasId]) {
+      chartInstances[canvasId].destroy();
+    }
+
+    const labels = [];
+    const dataPoints = [];
+
+    globalScoresData.forEach(exam => {
+      labels.push(exam.examName);
+      let val = null; 
+      if (exam.score && exam.score[rankKey] !== "") {
+        val = Number(exam.score[rankKey]);
+      }
+      dataPoints.push(val);
+    });
+
+    chartInstances[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: titleName,
+          data: dataPoints,
+          borderColor: colorHex,
+          backgroundColor: colorHex,
+          pointBackgroundColor: colorHex,
+          pointRadius: 5,
+          borderWidth: 2,
+          tension: 0.1, 
+          spanGaps: true 
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top' }
+        },
+        scales: {
+          y: {
+            // 設定 Y 軸反轉 (Reverse)
+            reverse: true,
+            // 讓起點從 1 開始，若資料中沒有 1 也會顯示 1 在最上方
+            suggestedMin: 1, 
+            ticks: {
+              // 排名只有整數
+              stepSize: 10, // 可視校排規模調整間距，預設 10
+              precision: 0
+            }
+          }
+        }
+      }
+    });
   }
 </script>
 
