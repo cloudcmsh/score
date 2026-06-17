@@ -9,7 +9,7 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f0f2f5;
       margin: 0;
-      padding: 15px; /* 手機版邊距稍微縮小 */
+      padding: 15px;
       color: #333;
     }
     .container {
@@ -19,7 +19,7 @@
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      box-sizing: border-box; /* 確保 padding 不會撐破寬度 */
+      box-sizing: border-box;
     }
     h1 {
       text-align: center;
@@ -83,25 +83,22 @@
       font-style: italic;
       text-align: center;
     }
-    
-    /* == 新增：讓表格在小螢幕可以左右滑動的容器 == */
     .table-responsive {
       width: 100%;
       overflow-x: auto;
-      -webkit-overflow-scrolling: touch; /* 讓 iOS 滑動更順暢 */
+      -webkit-overflow-scrolling: touch;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 700px; /* 確保表格不會被過度擠壓，維持排版 */
+      min-width: 700px;
     }
     th, td {
       padding: 10px 6px;
       text-align: center;
       border-bottom: 1px solid #ddd;
       font-size: 15px;
-      white-space: nowrap; /* 強制文字不換行 */
+      white-space: nowrap;
     }
     th {
       background-color: #f8f9fa;
@@ -137,11 +134,9 @@
       text-align: center;
       margin-top: 10px;
     }
-
-    /* == 新增：手機版螢幕 (寬度小於 768px) 的自動微調 == */
     @media screen and (max-width: 768px) {
       .container {
-        padding: 15px; /* 縮小白色卡片的內邊距 */
+        padding: 15px;
       }
       h1 {
         font-size: 22px;
@@ -150,10 +145,9 @@
         font-size: 16px;
       }
       th, td {
-        font-size: 14px; /* 表格字體稍微縮小 */
+        font-size: 14px;
         padding: 8px 4px;
       }
-      /* 手機上提示家長可以左右滑動 (利用視覺微調) */
       .table-responsive::-webkit-scrollbar {
         height: 6px;
       }
@@ -213,7 +207,8 @@
         if (data.status === "error") {
           errorMsg.textContent = data.message;
         } else if (data.status === "success") {
-          studentInfo.innerHTML = `<strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
+          // 加入了班級的顯示
+          studentInfo.innerHTML = `<strong>班級：</strong>${data.className} &nbsp;&nbsp;&nbsp; <strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
           studentInfo.style.display = "block";
           
           data.scores.forEach(exam => {
@@ -225,7 +220,6 @@
             title.textContent = exam.examName;
             section.appendChild(title);
             
-            // 加入 table-responsive 外框
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'table-responsive';
 
