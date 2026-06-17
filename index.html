@@ -2,27 +2,29 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>模擬考成績查詢系統</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f0f2f5;
       margin: 0;
-      padding: 20px;
+      padding: 15px; /* 手機版邊距稍微縮小 */
       color: #333;
     }
     .container {
-      max-width: 950px;
+      max-width: 950px; 
       margin: 0 auto;
       background: white;
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      box-sizing: border-box; /* 確保 padding 不會撐破寬度 */
     }
     h1 {
       text-align: center;
       color: #1a73e8;
+      font-size: 24px;
     }
     .login-form {
       display: flex;
@@ -81,20 +83,29 @@
       font-style: italic;
       text-align: center;
     }
+    
+    /* == 新增：讓表格在小螢幕可以左右滑動的容器 == */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch; /* 讓 iOS 滑動更順暢 */
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
+      min-width: 700px; /* 確保表格不會被過度擠壓，維持排版 */
     }
     th, td {
       padding: 10px 6px;
       text-align: center;
       border-bottom: 1px solid #ddd;
       font-size: 15px;
+      white-space: nowrap; /* 強制文字不換行 */
     }
     th {
       background-color: #f8f9fa;
       font-weight: 600;
-      white-space: nowrap;
     }
     .standards-wrapper {
       background-color: #f8f9fa;
@@ -126,6 +137,31 @@
       text-align: center;
       margin-top: 10px;
     }
+
+    /* == 新增：手機版螢幕 (寬度小於 768px) 的自動微調 == */
+    @media screen and (max-width: 768px) {
+      .container {
+        padding: 15px; /* 縮小白色卡片的內邊距 */
+      }
+      h1 {
+        font-size: 22px;
+      }
+      .student-info {
+        font-size: 16px;
+      }
+      th, td {
+        font-size: 14px; /* 表格字體稍微縮小 */
+        padding: 8px 4px;
+      }
+      /* 手機上提示家長可以左右滑動 (利用視覺微調) */
+      .table-responsive::-webkit-scrollbar {
+        height: 6px;
+      }
+      .table-responsive::-webkit-scrollbar-thumb {
+        background: #bbb; 
+        border-radius: 3px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -134,7 +170,7 @@
   <h1>模擬考成績查詢系統</h1>
   
   <div class="login-form" id="loginForm">
-    <input type="text" id="account" placeholder="帳號：孩子的班級與座號，例如高三戊1號就是3501" required>
+    <input type="text" id="account" placeholder="帳號：孩子的座號，如1號就是3501、2號就是3502" required>
     <input type="password" id="password" placeholder="密碼：孩子的生日，共四碼，如一月一日就是0101" required>
     <button onclick="fetchScores()">登入查詢</button>
     <div id="loading">資料查詢中，請稍候...</div>
@@ -177,7 +213,7 @@
         if (data.status === "error") {
           errorMsg.textContent = data.message;
         } else if (data.status === "success") {
-          studentInfo.innerHTML = `<strong>班級：</strong>${data.studentClass} &nbsp;&nbsp;&nbsp; <strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
+          studentInfo.innerHTML = `<strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
           studentInfo.style.display = "block";
           
           data.scores.forEach(exam => {
@@ -189,6 +225,10 @@
             title.textContent = exam.examName;
             section.appendChild(title);
             
+            // 加入 table-responsive 外框
+            const tableWrapper = document.createElement('div');
+            tableWrapper.className = 'table-responsive';
+
             if (!exam.score || exam.score.chinese === "") {
               const noScore = document.createElement('div');
               noScore.className = 'no-score';
@@ -207,7 +247,7 @@
                   <th>國英數A自</th>
                   <th>國英數A</th>
                   <th>英數A自</th>
-                  <th>國英數A自總排名</th>
+                  <th>總排名</th>
                   <th>參加人數</th>
                 </tr>
                 <tr>
@@ -224,7 +264,8 @@
                   <td><strong>${exam.score.totalParticipants === "" ? "-" : exam.score.totalParticipants}</strong></td>
                 </tr>
               `;
-              section.appendChild(table);
+              tableWrapper.appendChild(table);
+              section.appendChild(tableWrapper);
             }
 
             if (exam.standards && exam.standards.length > 0) {
@@ -248,18 +289,20 @@
 
               standardsWrapper.innerHTML = `
                 <div class="standards-title">✨ 本次模擬考各科五標參考 ✨</div>
-                <table class="standards-table">
-                  <tr>
-                    <th>標別</th>
-                    <th>國文</th>
-                    <th>英文</th>
-                    <th>數A</th>
-                    <th>數B</th>
-                    <th>自然</th>
-                    <th>社會</th>
-                  </tr>
-                  ${standardsRows}
-                </table>
+                <div class="table-responsive">
+                  <table class="standards-table">
+                    <tr>
+                      <th>標別</th>
+                      <th>國文</th>
+                      <th>英文</th>
+                      <th>數A</th>
+                      <th>數B</th>
+                      <th>自然</th>
+                      <th>社會</th>
+                    </tr>
+                    ${standardsRows}
+                  </table>
+                </div>
               `;
               section.appendChild(standardsWrapper);
             }
