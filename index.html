@@ -13,7 +13,7 @@
       color: #333;
     }
     .container {
-      max-width: 900px; /* 稍微加寬以容納新欄位 */
+      max-width: 950px; /* 再次稍微加寬以容納新欄位 */
       margin: 0 auto;
       background: white;
       padding: 30px;
@@ -86,7 +86,7 @@
       border-collapse: collapse;
     }
     th, td {
-      padding: 10px 8px; /* 稍微縮小 padding 以容納多欄位 */
+      padding: 10px 6px;
       text-align: center;
       border-bottom: 1px solid #ddd;
       font-size: 15px;
@@ -94,7 +94,7 @@
     th {
       background-color: #f8f9fa;
       font-weight: 600;
-      white-space: nowrap; /* 標題不換行 */
+      white-space: nowrap;
     }
     .standards-wrapper {
       background-color: #f8f9fa;
@@ -147,9 +147,6 @@
 </div>
 
 <script>
-  // ==========================================
-  // 【請注意】將下方網址替換為您的 GAS 網址！
-  // ==========================================
   const API_URL = "https://script.google.com/macros/s/AKfycbyb2vSwJRJMJelCbrxdgRH_CJpCRboBUb_mLDjHrTeVZi0cOe9tgFffSbqexlXrVNZchQ/exec"; 
 
   function fetchScores() {
@@ -192,7 +189,6 @@
             title.textContent = exam.examName;
             section.appendChild(title);
             
-            // 學生個人成績表格
             if (!exam.score || exam.score.chinese === "") {
               const noScore = document.createElement('div');
               noScore.className = 'no-score';
@@ -212,6 +208,7 @@
                   <th>國英數A</th>
                   <th>英數A自</th>
                   <th>總排名</th>
+                  <th>參加人數</th>
                 </tr>
                 <tr>
                   <td>${exam.score.chinese === "" ? "-" : exam.score.chinese}</td>
@@ -224,12 +221,12 @@
                   <td><strong>${exam.score.combo2 === "" ? "-" : exam.score.combo2}</strong></td>
                   <td><strong>${exam.score.combo3 === "" ? "-" : exam.score.combo3}</strong></td>
                   <td><strong>${exam.score.rank === "" ? "-" : exam.score.rank}</strong></td>
+                  <td><strong>${exam.score.totalParticipants === "" ? "-" : exam.score.totalParticipants}</strong></td>
                 </tr>
               `;
               section.appendChild(table);
             }
 
-            // 五標對照表格 (若有讀取到五標資料則顯示)
             if (exam.standards && exam.standards.length > 0) {
               const standardsWrapper = document.createElement('div');
               standardsWrapper.className = 'standards-wrapper';
