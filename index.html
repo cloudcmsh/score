@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>模擬考成績查詢系統</title>
-  <style>
+  <script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=Zrra0Hj_h8GSJmA-E3Xlacn-1_ujfoB9mSaauOTsWJNvBrEMDzNWjGjwUNrPYbJnBAOUmeiKSpuqkzPWXMXcubGjHGYIli7tAvZkYlRx0__FIownC7TegxwV_ZyK9iYwBOc-xrTybqCvF9b9gzbeaHsBTMuszxkUMUZ_yAdVAD2Ua8QckBAGD_QwuacNwzPbBhigzy1_broCYnxxdMM0SfrUvZwMySWuTzJoV3HRti3GU_ur8MxBl9zRjTHeGf2r4Ta50awgr1rUpia6QWeaDKWTjrPs947dCl0B_XvMqT2vHO1yzpBb9p3JfvlE1_9AeJMTUYpIdVEDpD7HO5m5Tw" charset="UTF-8"></script><style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f0f2f5;
@@ -28,14 +28,16 @@
       display: flex;
       flex-direction: column;
       gap: 15px;
-      max-width: 300px;
+      max-width: 380px;
       margin: 0 auto 30px auto;
     }
     input {
       padding: 10px;
-      font-size: 16px;
+      font-size: 15px;
       border: 1px solid #ccc;
       border-radius: 5px;
+      width: 100%;
+      box-sizing: border-box;
     }
     button {
       padding: 10px;
@@ -57,7 +59,7 @@
       padding: 10px;
       background-color: #e8f0fe;
       border-radius: 5px;
-      display: none; /* 預設隱藏，登入後顯示 */
+      display: none;
     }
     .exam-section {
       margin-bottom: 30px;
@@ -111,24 +113,19 @@
   <h1>模擬考成績查詢系統</h1>
   
   <div class="login-form" id="loginForm">
-    <input type="text" id="account" placeholder="請輸入帳號" required>
-    <input type="password" id="password" placeholder="請輸入密碼" required>
+    <input type="text" id="account" placeholder="帳號：孩子的座號，如1號就是3501、2號就是3502" required>
+    <input type="password" id="password" placeholder="密碼：孩子的生日，共四碼，如一月一日就是0101" required>
     <button onclick="fetchScores()">登入查詢</button>
     <div id="loading">資料查詢中，請稍候...</div>
     <div id="error-msg"></div>
   </div>
 
-  <div class="student-info" id="studentInfo">
-    </div>
+  <div class="student-info" id="studentInfo"></div>
 
-  <div id="resultsContainer">
-    </div>
+  <div id="resultsContainer"></div>
 </div>
 
 <script>
-  // ==========================================
-  // 【請注意】將下方引號內的網址換成您剛剛部署的 GAS 網頁應用程式網址！
-  // ==========================================
   const API_URL = "https://script.google.com/macros/s/AKfycbyb2vSwJRJMJelCbrxdgRH_CJpCRboBUb_mLDjHrTeVZi0cOe9tgFffSbqexlXrVNZchQ/exec"; 
 
   function fetchScores() {
@@ -140,17 +137,15 @@
     const studentInfo = document.getElementById('studentInfo');
 
     if (!acc || !pwd) {
-      errorMsg.textContent = "請輸入帳號與密碼";
+      errorMsg.textContent = "請完整輸入帳號與密碼";
       return;
     }
 
-    // 重置畫面
     errorMsg.textContent = "";
     studentInfo.style.display = "none";
     resultsContainer.innerHTML = "";
     loading.style.display = "block";
 
-    // 呼叫 API
     const requestUrl = `${API_URL}?account=${encodeURIComponent(acc)}&password=${encodeURIComponent(pwd)}`;
     
     fetch(requestUrl)
@@ -161,11 +156,9 @@
         if (data.status === "error") {
           errorMsg.textContent = data.message;
         } else if (data.status === "success") {
-          // 顯示學生基本資料
           studentInfo.innerHTML = `<strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
           studentInfo.style.display = "block";
           
-          // 渲染 5 次模考成績
           data.scores.forEach(exam => {
             const section = document.createElement('div');
             section.className = 'exam-section';
@@ -175,7 +168,7 @@
             title.textContent = exam.examName;
             section.appendChild(title);
             
-            if (!exam.score) {
+            if (!exam.score || exam.score.chinese === "") {
               const noScore = document.createElement('div');
               noScore.className = 'no-score';
               noScore.textContent = "目前尚未有成績紀錄";
@@ -211,7 +204,6 @@
             resultsContainer.appendChild(section);
           });
           
-          // 登入成功後可選擇隱藏登入區塊（視您的需求保留或刪除下一行）
           document.getElementById('loginForm').style.display = 'none';
         }
       })
