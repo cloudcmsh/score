@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模擬考成績查詢系統</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #1a73e8;
+    }
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      max-width: 300px;
+      margin: 0 auto 30px auto;
+    }
+    input {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px;
+      font-size: 16px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #1557b0;
+    }
+    .student-info {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 20px;
+      padding: 10px;
+      background-color: #e8f0fe;
+      border-radius: 5px;
+      display: none; /* 預設隱藏，登入後顯示 */
+    }
+    .exam-section {
+      margin-bottom: 30px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .exam-title {
+      background-color: #1a73e8;
+      color: white;
+      padding: 10px 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .no-score {
+      padding: 15px;
+      color: #666;
+      font-style: italic;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    #loading {
+      text-align: center;
+      display: none;
+      color: #1a73e8;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    #error-msg {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>模擬考成績查詢系統</h1>
+  
+  <div class="login-form" id="loginForm">
+    <input type="text" id="account" placeholder="請輸入帳號" required>
+    <input type="password" id="password" placeholder="請輸入密碼" required>
+    <button onclick="fetchScores()">登入查詢</button>
+    <div id="loading">資料查詢中，請稍候...</div>
+    <div id="error-msg"></div>
+  </div>
+
+  <div class="student-info" id="studentInfo">
+    </div>
+
+  <div id="resultsContainer">
+    </div>
+</div>
+
+<script>
+  // ==========================================
+  // 【請注意】將下方引號內的網址換成您剛剛部署的 GAS 網頁應用程式網址！
+  // ==========================================
+  const API_URL = "https://script.google.com/macros/s/AKfycbyb2vSwJRJMJelCbrxdgRH_CJpCRboBUb_mLDjHrTeVZi0cOe9tgFffSbqexlXrVNZchQ/exec"; 
+
+  function fetchScores() {
+    const acc = document.getElementById('account').value;
+    const pwd = document.getElementById('password').value;
+    const errorMsg = document.getElementById('error-msg');
+    const loading = document.getElementById('loading');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const studentInfo = document.getElementById('studentInfo');
+
+    if (!acc || !pwd) {
+      errorMsg.textContent = "請輸入帳號與密碼";
+      return;
+    }
+
+    // 重置畫面
+    errorMsg.textContent = "";
+    studentInfo.style.display = "none";
+    resultsContainer.innerHTML = "";
+    loading.style.display = "block";
+
+    // 呼叫 API
+    const requestUrl = `${API_URL}?account=${encodeURIComponent(acc)}&password=${encodeURIComponent(pwd)}`;
+    
+    fetch(requestUrl)
+      .then(response => response.json())
+      .then(data => {
+        loading.style.display = "none";
+        
+        if (data.status === "error") {
+          errorMsg.textContent = data.message;
+        } else if (data.status === "success") {
+          // 顯示學生基本資料
+          studentInfo.innerHTML = `<strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
+          studentInfo.style.display = "block";
+          
+          // 渲染 5 次模考成績
+          data.scores.forEach(exam => {
+            const section = document.createElement('div');
+            section.className = 'exam-section';
+            
+            const title = document.createElement('div');
+            title.className = 'exam-title';
+            title.textContent = exam.examName;
+            section.appendChild(title);
+            
+            if (!exam.score) {
+              const noScore = document.createElement('div');
+              noScore.className = 'no-score';
+              noScore.textContent = "目前尚未有成績紀錄";
+              section.appendChild(noScore);
+            } else {
+              const table = document.createElement('table');
+              table.innerHTML = `
+                <tr>
+                  <th>國文</th>
+                  <th>英文</th>
+                  <th>數A</th>
+                  <th>數B</th>
+                  <th>自然</th>
+                  <th>社會</th>
+                  <th>國英數A自</th>
+                  <th>國英數A</th>
+                  <th>總排名</th>
+                </tr>
+                <tr>
+                  <td>${exam.score.chinese === "" ? "-" : exam.score.chinese}</td>
+                  <td>${exam.score.english === "" ? "-" : exam.score.english}</td>
+                  <td>${exam.score.mathA === "" ? "-" : exam.score.mathA}</td>
+                  <td>${exam.score.mathB === "" ? "-" : exam.score.mathB}</td>
+                  <td>${exam.score.science === "" ? "-" : exam.score.science}</td>
+                  <td>${exam.score.social === "" ? "-" : exam.score.social}</td>
+                  <td><strong>${exam.score.combo1 === "" ? "-" : exam.score.combo1}</strong></td>
+                  <td><strong>${exam.score.combo2 === "" ? "-" : exam.score.combo2}</strong></td>
+                  <td><strong>${exam.score.rank === "" ? "-" : exam.score.rank}</strong></td>
+                </tr>
+              `;
+              section.appendChild(table);
+            }
+            resultsContainer.appendChild(section);
+          });
+          
+          // 登入成功後可選擇隱藏登入區塊（視您的需求保留或刪除下一行）
+          document.getElementById('loginForm').style.display = 'none';
+        }
+      })
+      .catch(err => {
+        loading.style.display = "none";
+        errorMsg.textContent = "連線發生錯誤，請稍後再試或聯繫老師。";
+        console.error(err);
+      });
+  }
+</script>
+
+</body>
+</html>
