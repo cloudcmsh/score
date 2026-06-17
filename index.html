@@ -207,8 +207,8 @@
         if (data.status === "error") {
           errorMsg.textContent = data.message;
         } else if (data.status === "success") {
-          // 加入了班級的顯示
-          studentInfo.innerHTML = `<strong>班級：</strong>${data.className} &nbsp;&nbsp;&nbsp; <strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
+          const displayClass = data.className || "";
+          studentInfo.innerHTML = `<strong>班級：</strong>${displayClass} &nbsp;&nbsp;&nbsp; <strong>座號：</strong>${data.id} &nbsp;&nbsp;&nbsp; <strong>姓名：</strong>${data.name}`;
           studentInfo.style.display = "block";
           
           data.scores.forEach(exam => {
