@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>模擬考成績查詢系統</title>
-  <script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=Zrra0Hj_h8GSJmA-E3Xlacn-1_ujfoB9mSaauOTsWJNvBrEMDzNWjGjwUNrPYbJnBAOUmeiKSpuqkzPWXMXcubGjHGYIli7tAvZkYlRx0__FIownC7TegxwV_ZyK9iYwBOc-xrTybqCvF9b9gzbeaHsBTMuszxkUMUZ_yAdVAD2Ua8QckBAGD_QwuacNwzPbBhigzy1_broCYnxxdMM0SfrUvZwMySWuTzJoV3HRti3GU_ur8MxBl9zRjTHeGf2r4Ta50awgr1rUpia6QWeaDKWTjrPs947dCl0B_XvMqT2vHO1yzpBb9p3JfvlE1_9AeJMTUYpIdVEDpD7HO5m5Tw" charset="UTF-8"></script><style>
+  <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f0f2f5;
@@ -13,7 +13,7 @@
       color: #333;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px; /* 稍微加寬以容納新欄位 */
       margin: 0 auto;
       background: white;
       padding: 30px;
@@ -66,6 +66,7 @@
       border: 1px solid #ddd;
       border-radius: 8px;
       overflow: hidden;
+      background-color: #fff;
     }
     .exam-title {
       background-color: #1a73e8;
@@ -85,13 +86,33 @@
       border-collapse: collapse;
     }
     th, td {
-      padding: 12px;
+      padding: 10px 8px; /* 稍微縮小 padding 以容納多欄位 */
       text-align: center;
       border-bottom: 1px solid #ddd;
+      font-size: 15px;
     }
     th {
       background-color: #f8f9fa;
       font-weight: 600;
+      white-space: nowrap; /* 標題不換行 */
+    }
+    .standards-wrapper {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-top: 2px dashed #ddd;
+    }
+    .standards-title {
+      font-size: 14px;
+      color: #5f6368;
+      margin-bottom: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .standards-table th {
+      background-color: #e8eaed;
+    }
+    .standards-table td {
+      border-bottom: 1px solid #eee;
     }
     #loading {
       text-align: center;
@@ -126,6 +147,9 @@
 </div>
 
 <script>
+  // ==========================================
+  // 【請注意】將下方網址替換為您的 GAS 網址！
+  // ==========================================
   const API_URL = "https://script.google.com/macros/s/AKfycbyb2vSwJRJMJelCbrxdgRH_CJpCRboBUb_mLDjHrTeVZi0cOe9tgFffSbqexlXrVNZchQ/exec"; 
 
   function fetchScores() {
@@ -168,6 +192,7 @@
             title.textContent = exam.examName;
             section.appendChild(title);
             
+            // 學生個人成績表格
             if (!exam.score || exam.score.chinese === "") {
               const noScore = document.createElement('div');
               noScore.className = 'no-score';
@@ -185,6 +210,7 @@
                   <th>社會</th>
                   <th>國英數A自</th>
                   <th>國英數A</th>
+                  <th>英數A自</th>
                   <th>總排名</th>
                 </tr>
                 <tr>
@@ -196,11 +222,51 @@
                   <td>${exam.score.social === "" ? "-" : exam.score.social}</td>
                   <td><strong>${exam.score.combo1 === "" ? "-" : exam.score.combo1}</strong></td>
                   <td><strong>${exam.score.combo2 === "" ? "-" : exam.score.combo2}</strong></td>
+                  <td><strong>${exam.score.combo3 === "" ? "-" : exam.score.combo3}</strong></td>
                   <td><strong>${exam.score.rank === "" ? "-" : exam.score.rank}</strong></td>
                 </tr>
               `;
               section.appendChild(table);
             }
+
+            // 五標對照表格 (若有讀取到五標資料則顯示)
+            if (exam.standards && exam.standards.length > 0) {
+              const standardsWrapper = document.createElement('div');
+              standardsWrapper.className = 'standards-wrapper';
+              
+              let standardsRows = '';
+              exam.standards.forEach(std => {
+                standardsRows += `
+                  <tr>
+                    <td><strong>${std.level}</strong></td>
+                    <td>${std.chinese}</td>
+                    <td>${std.english}</td>
+                    <td>${std.mathA}</td>
+                    <td>${std.mathB}</td>
+                    <td>${std.science}</td>
+                    <td>${std.social}</td>
+                  </tr>
+                `;
+              });
+
+              standardsWrapper.innerHTML = `
+                <div class="standards-title">✨ 本次模擬考各科五標參考 ✨</div>
+                <table class="standards-table">
+                  <tr>
+                    <th>標別</th>
+                    <th>國文</th>
+                    <th>英文</th>
+                    <th>數A</th>
+                    <th>數B</th>
+                    <th>自然</th>
+                    <th>社會</th>
+                  </tr>
+                  ${standardsRows}
+                </table>
+              `;
+              section.appendChild(standardsWrapper);
+            }
+
             resultsContainer.appendChild(section);
           });
           
