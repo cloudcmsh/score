@@ -77,6 +77,15 @@
       font-size: 18px;
       font-weight: bold;
     }
+    .exam-details {
+      background-color: #eef2f7;
+      padding: 8px 15px;
+      font-size: 15px;
+      color: #444;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      gap: 30px;
+    }
     .no-score {
       padding: 15px;
       color: #666;
@@ -91,7 +100,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 750px; /* 稍微加寬以容納較長的標題 */
+      min-width: 750px;
     }
     th, td {
       padding: 10px 6px;
@@ -143,6 +152,11 @@
       }
       .student-info {
         font-size: 16px;
+      }
+      .exam-details {
+        flex-direction: column;
+        gap: 5px;
+        font-size: 14px;
       }
       th, td {
         font-size: 14px;
@@ -215,11 +229,24 @@
             const section = document.createElement('div');
             section.className = 'exam-section';
             
+            // 1. 考試標題
             const title = document.createElement('div');
             title.className = 'exam-title';
             title.textContent = exam.examName;
             section.appendChild(title);
+
+            // 2. 考試詳細資訊 (日期與人數)
+            if (exam.examDate !== "" || exam.examParticipants !== "") {
+              const details = document.createElement('div');
+              details.className = 'exam-details';
+              details.innerHTML = `
+                <span>日期：${exam.examDate === "" ? "-" : exam.examDate}</span>
+                <span>全體考生人數：${exam.examParticipants === "" ? "-" : exam.examParticipants}</span>
+              `;
+              section.appendChild(details);
+            }
             
+            // 3. 表格外框與成績
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'table-responsive';
 
@@ -241,8 +268,8 @@
                   <th>國英數A自</th>
                   <th>國英數A</th>
                   <th>英數A自</th>
-                  <th>國英數A自總排名</th>
-                  <th>參加人數</th>
+                  <th>四科校排</th>
+                  <th>四科總排</th>
                 </tr>
                 <tr>
                   <td>${exam.score.chinese === "" ? "-" : exam.score.chinese}</td>
@@ -254,14 +281,15 @@
                   <td><strong>${exam.score.combo1 === "" ? "-" : exam.score.combo1}</strong></td>
                   <td><strong>${exam.score.combo2 === "" ? "-" : exam.score.combo2}</strong></td>
                   <td><strong>${exam.score.combo3 === "" ? "-" : exam.score.combo3}</strong></td>
-                  <td><strong>${exam.score.rank === "" ? "-" : exam.score.rank}</strong></td>
-                  <td><strong>${exam.score.totalParticipants === "" ? "-" : exam.score.totalParticipants}</strong></td>
+                  <td><strong>${exam.score.schoolRank === "" ? "-" : exam.score.schoolRank}</strong></td>
+                  <td><strong>${exam.score.totalRank === "" ? "-" : exam.score.totalRank}</strong></td>
                 </tr>
               `;
               tableWrapper.appendChild(table);
               section.appendChild(tableWrapper);
             }
 
+            // 4. 五標
             if (exam.standards && exam.standards.length > 0) {
               const standardsWrapper = document.createElement('div');
               standardsWrapper.className = 'standards-wrapper';
