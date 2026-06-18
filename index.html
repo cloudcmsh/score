@@ -329,7 +329,10 @@
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'table-responsive';
 
-            if (!exam.score || exam.score.chinese === "") {
+            const subjectKeys = ['chinese', 'english', 'mathA', 'mathB', 'science', 'social'];
+            const hasAnyScore = exam.score && subjectKeys.some(k => exam.score[k] != null && exam.score[k] !== "");
+
+            if (!hasAnyScore) {
               const noScore = document.createElement('div');
               noScore.className = 'no-score';
               noScore.textContent = "目前尚未有成績紀錄";
@@ -461,8 +464,9 @@
       labels.push(shortName);
       
       let val = null; 
-      if (exam.score && exam.score[subjectKey] !== "") {
+      if (exam.score && exam.score[subjectKey] != null && exam.score[subjectKey] !== "") {
         val = Number(exam.score[subjectKey]);
+        if (isNaN(val)) val = null;
       }
       dataPoints.push(val);
     });
@@ -515,8 +519,9 @@
       labels.push(shortName);
 
       let val = null; 
-      if (exam.score && exam.score[rankKey] !== "") {
+      if (exam.score && exam.score[rankKey] != null && exam.score[rankKey] !== "") {
         val = Number(exam.score[rankKey]);
+        if (isNaN(val)) val = null;
       }
       dataPoints.push(val);
     });
