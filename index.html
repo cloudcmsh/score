@@ -112,7 +112,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 750px;
+      min-width: 800px; /* 因欄位變動稍微放寬 */
     }
     th, td {
       padding: 10px 6px;
@@ -195,7 +195,6 @@
       padding-bottom: 10px;
       border-bottom: 1px solid #eee;
     }
-    /* 校排圖表可以拉高一點，因為 Y 軸數值可能變化較大 */
     .rank-chart-container {
        height: 300px; 
     }
@@ -250,7 +249,6 @@
     <div class="chart-container"><canvas id="chartMathB"></canvas></div>
     <div class="chart-container"><canvas id="chartScience"></canvas></div>
     <div class="chart-container"><canvas id="chartSocial"></canvas></div>
-    
     <div class="chart-container rank-chart-container"><canvas id="chartSchoolRank"></canvas></div>
 
   </div>
@@ -261,6 +259,14 @@
 
   let globalScoresData = [];
   let chartInstances = {};
+
+  const examNameMap = {
+    "第一次模擬考": "T1",
+    "第二次模擬考": "T2",
+    "第三次模擬考": "T3",
+    "第四次模擬考": "T4",
+    "第五次模擬考": "T5"
+  };
 
   function fetchScores() {
     const acc = document.getElementById('account').value;
@@ -330,6 +336,7 @@
               section.appendChild(noScore);
             } else {
               const table = document.createElement('table');
+              // 依據截圖更新的表頭欄位
               table.innerHTML = `
                 <tr>
                   <th>國文</th>
@@ -339,10 +346,10 @@
                   <th>自然</th>
                   <th>社會</th>
                   <th>國英數A自</th>
-                  <th>國英數A</th>
                   <th>英數A自</th>
-                  <th>四科校排</th>
-                  <th>四科總排</th>
+                  <th>國英數A自校排</th>
+                  <th>國英數A自總排</th>
+                  <th>英數A自總排</th>
                 </tr>
                 <tr>
                   <td>${exam.score.chinese === "" ? "-" : exam.score.chinese}</td>
@@ -352,10 +359,10 @@
                   <td>${exam.score.science === "" ? "-" : exam.score.science}</td>
                   <td>${exam.score.social === "" ? "-" : exam.score.social}</td>
                   <td><strong>${exam.score.combo1 === "" ? "-" : exam.score.combo1}</strong></td>
-                  <td><strong>${exam.score.combo2 === "" ? "-" : exam.score.combo2}</strong></td>
                   <td><strong>${exam.score.combo3 === "" ? "-" : exam.score.combo3}</strong></td>
-                  <td><strong>${exam.score.schoolRank === "" ? "-" : exam.score.schoolRank}</strong></td>
-                  <td><strong>${exam.score.totalRank === "" ? "-" : exam.score.totalRank}</strong></td>
+                  <td><strong>${exam.score.schoolRank1 === "" ? "-" : exam.score.schoolRank1}</strong></td>
+                  <td><strong>${exam.score.totalRank1 === "" ? "-" : exam.score.totalRank1}</strong></td>
+                  <td><strong>${exam.score.totalRank3 === "" ? "-" : exam.score.totalRank3}</strong></td>
                 </tr>
               `;
               tableWrapper.appendChild(table);
@@ -424,8 +431,8 @@
     renderScoreChart('chartScience', 'science', '自然', '#00b894'); 
     renderScoreChart('chartSocial', 'social', '社會', '#fdcb6e');   
     
-    // 繪製校排變動圖表 (使用獨立的函式，因為 Y 軸方向與設定不同)
-    renderRankChart('chartSchoolRank', 'schoolRank', '四科校排', '#6c5ce7'); 
+    // 校排綁定到更新後的 schoolRank1
+    renderRankChart('chartSchoolRank', 'schoolRank1', '國英數A自校排', '#6c5ce7'); 
   }
 
   function closeAnalysisModal() {
@@ -439,7 +446,6 @@
     }
   }
 
-  // 繪製一般級分折線圖 (Y軸 0-15)
   function renderScoreChart(canvasId, subjectKey, subjectName, colorHex) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     
@@ -451,7 +457,9 @@
     const dataPoints = [];
 
     globalScoresData.forEach(exam => {
-      labels.push(exam.examName);
+      const shortName = examNameMap[exam.examName] || exam.examName;
+      labels.push(shortName);
+      
       let val = null; 
       if (exam.score && exam.score[subjectKey] !== "") {
         val = Number(exam.score[subjectKey]);
@@ -492,7 +500,6 @@
     });
   }
 
-  // 繪製排名折線圖 (Y軸反轉，數字越小在越上面)
   function renderRankChart(canvasId, rankKey, titleName, colorHex) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     
@@ -504,7 +511,9 @@
     const dataPoints = [];
 
     globalScoresData.forEach(exam => {
-      labels.push(exam.examName);
+      const shortName = examNameMap[exam.examName] || exam.examName;
+      labels.push(shortName);
+
       let val = null; 
       if (exam.score && exam.score[rankKey] !== "") {
         val = Number(exam.score[rankKey]);
@@ -536,13 +545,10 @@
         },
         scales: {
           y: {
-            // 設定 Y 軸反轉 (Reverse)
             reverse: true,
-            // 讓起點從 1 開始，若資料中沒有 1 也會顯示 1 在最上方
             suggestedMin: 1, 
             ticks: {
-              // 排名只有整數
-              stepSize: 10, // 可視校排規模調整間距，預設 10
+              stepSize: 10, 
               precision: 0
             }
           }
