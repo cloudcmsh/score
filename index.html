@@ -497,7 +497,9 @@
           y: {
             min: 0,
             max: 15, 
-            ticks: { stepSize: 1 }
+            afterBuildTicks: (axis) => {
+              axis.ticks = [3, 6, 9, 12, 15].map(v => ({ value: v }));
+            }
           }
         }
       }
