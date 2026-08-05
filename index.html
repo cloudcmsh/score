@@ -553,9 +553,12 @@
         scales: {
           y: {
             reverse: true,
-            suggestedMin: 1, 
+            min: 1,
+            max: 300,
+            afterBuildTicks: (axis) => {
+              axis.ticks = [1, 50, 100, 150, 200, 250, 300].map(v => ({ value: v }));
+            },
             ticks: {
-              stepSize: 10, 
               precision: 0
             }
           }
